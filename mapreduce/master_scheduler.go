@@ -34,16 +34,22 @@ func (master *Master) schedule(task *Task, proc string, filePathChan chan string
 
 	wg.Wait()
 
+	for operation := range master.failedOperationChan {
+		if master.completedOperations == counter {
+			break
+		}
+
+		worker = <-master.idleWorkerChan
+		wg.Add(1)
+		go master.runOperation(worker, operation, &wg)
+	}
+
 	log.Printf("%vx %v operations completed\n", counter, proc)
 	return counter
 }
 
 // runOperation start a single operation on a RemoteWorker and wait for it to return or fail.
 func (master *Master) runOperation(remoteWorker *RemoteWorker, operation *Operation, wg *sync.WaitGroup) {
-	//////////////////////////////////
-	// YOU WANT TO MODIFY THIS CODE //
-	//////////////////////////////////
-
 	var (
 		err  error
 		args *RunArgs
@@ -55,11 +61,13 @@ func (master *Master) runOperation(remoteWorker *RemoteWorker, operation *Operat
 	err = remoteWorker.callRemoteWorker(operation.proc, args, new(struct{}))
 
 	if err != nil {
-		log.Printf("Operation %v '%v' Failed. Error: %v\n", operation.proc, operation.id, err)
 		wg.Done()
 		master.failedWorkerChan <- remoteWorker
+		master.failedOperationChan <- operation
+		log.Printf("Operation %v '%v' Failed. Error: %v\n", operation.proc, operation.id, err)
 	} else {
 		wg.Done()
 		master.idleWorkerChan <- remoteWorker
+		master.completedOperations += 1
 	}
 }

@@ -18,22 +18,21 @@ type Master struct {
 	task *Task
 
 	// Network
-	address   string
-	rpcServer *rpc.Server
-	listener  net.Listener
+	address   			string
+	rpcServer 			*rpc.Server
+	listener  			net.Listener
 
 	// Workers handling
-	workersMutex sync.Mutex
-	workers      map[int]*RemoteWorker
-	totalWorkers int // Used to generate unique ids for new workers
+	workersMutex 		sync.Mutex
+	workers      		map[int]*RemoteWorker
+	totalWorkers 		int // Used to generate unique ids for new workers
 
-	idleWorkerChan   chan *RemoteWorker
-	failedWorkerChan chan *RemoteWorker
+	idleWorkerChan   	chan *RemoteWorker
+	failedWorkerChan 	chan *RemoteWorker
 
-	///////////////////////////////
-	// ADD EXTRA PROPERTIES HERE //
-	///////////////////////////////
 	// Fault Tolerance
+	failedOperationChan	chan *Operation
+	completedOperations int
 }
 
 type Operation struct {
@@ -50,6 +49,8 @@ func newMaster(address string) (master *Master) {
 	master.idleWorkerChan = make(chan *RemoteWorker, IDLE_WORKER_BUFFER)
 	master.failedWorkerChan = make(chan *RemoteWorker, IDLE_WORKER_BUFFER)
 	master.totalWorkers = 0
+	master.failedOperationChan = make(chan *Operation, RETRY_OPERATION_BUFFER)
+	master.completedOperations = 0
 	return
 }
 
