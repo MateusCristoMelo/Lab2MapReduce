@@ -69,5 +69,6 @@ func (master *Master) runOperation(remoteWorker *RemoteWorker, operation *Operat
 		wg.Done()
 		master.idleWorkerChan <- remoteWorker
 		master.completedOperations += 1
+		log.Printf("Operation %v '%v' Complete.\n", operation.proc, operation.id)
 	}
 }
