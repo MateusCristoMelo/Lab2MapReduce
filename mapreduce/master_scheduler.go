@@ -35,7 +35,7 @@ func (master *Master) schedule(task *Task, proc string, filePathChan chan string
 	wg.Wait()
 
 	for operation := range master.failedOperationChan {
-		if master.completedOperations == counter {
+		if master.completedOperations == (counter - 1) {
 			break
 		}
 
