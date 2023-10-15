@@ -1,3 +1,11 @@
 # Unnecessary files
 .DS_Store
 *.pdf
+
+# Folders with files created during execution
+wordcount/map
+wordcount/reduce
+wordcount/result
+
+# Wordcount executable
+wordcount/wordcount

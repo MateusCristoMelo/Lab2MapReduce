@@ -8,10 +8,6 @@ import (
 // Schedules map operations on remote workers. This will run until InputFilePathChan
 // is closed. If there is no worker available, it'll block.
 func (master *Master) schedule(task *Task, proc string, filePathChan chan string) int {
-	//////////////////////////////////
-	// YOU WANT TO MODIFY THIS CODE //
-	//////////////////////////////////
-
 	var (
 		wg        sync.WaitGroup
 		filePath  string
@@ -22,6 +18,7 @@ func (master *Master) schedule(task *Task, proc string, filePathChan chan string
 
 	log.Printf("Scheduling %v operations\n", proc)
 
+	master.completedOperations = 0
 	counter = 0
 	for filePath = range filePathChan {
 		operation = &Operation{proc, counter, filePath}
@@ -34,18 +31,20 @@ func (master *Master) schedule(task *Task, proc string, filePathChan chan string
 
 	wg.Wait()
 
-	for operation := range master.failedOperationChan {
-		if master.completedOperations == (counter - 1) {
-			break
+	for {
+		select {
+		case operation := <-master.failedOperationChan:
+			worker = <-master.idleWorkerChan
+			wg.Add(1)
+			go master.runOperation(worker, operation, &wg)
+
+		default:
+			if master.completedOperations == counter {
+				log.Printf("%vx %v operations completed\n", counter, proc)
+				return counter
+			}
 		}
-
-		worker = <-master.idleWorkerChan
-		wg.Add(1)
-		go master.runOperation(worker, operation, &wg)
 	}
-
-	log.Printf("%vx %v operations completed\n", counter, proc)
-	return counter
 }
 
 // runOperation start a single operation on a RemoteWorker and wait for it to return or fail.
